@@ -1,0 +1,4 @@
+PLACEHOLDER: Create a 192x192px PNG icon with:
+- Background: Black (#0A0A0A)
+- Text: "MC" in hot pink (#FF006E) graffiti style
+- Or use: https://www.favicon-generator.org/

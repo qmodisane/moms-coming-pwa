@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto+Condensed:wght@300;400;700&family=Bangers&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-asphalt text-spray-white font-condensed;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer components {
+  .graffiti-border {
+    border: 3px solid;
+    border-image: linear-gradient(45deg, #FF006E, #00F5FF, #CCFF00) 1;
+    box-shadow: 0 0 20px rgba(255, 0, 110, 0.3);
+  }
+
+  .spray-paint-text {
+    text-shadow: 
+      2px 2px 4px rgba(0, 0, 0, 0.8),
+      0 0 10px currentColor;
+  }
+
+  .drip-effect {
+    position: relative;
+  }
+
+  .drip-effect::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    width: 4px;
+    height: 15px;
+    background: currentColor;
+    border-radius: 0 0 50% 50%;
+    animation: drip 2s ease-in-out infinite;
+  }
+
+  .neon-glow {
+    box-shadow: 
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 20px currentColor,
+      0 0 40px currentColor;
+  }
+
+  .btn-primary {
+    @apply bg-hot-pink text-white font-graffiti text-xl py-4 px-8 rounded-lg
+           transform transition-all duration-200 active:scale-95
+           shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-electric-blue text-asphalt font-graffiti text-xl py-4 px-8 rounded-lg
+           transform transition-all duration-200 active:scale-95
+           shadow-lg hover:shadow-xl;
+  }
+
+  .game-card {
+    @apply bg-concrete rounded-xl p-6 graffiti-border;
+  }
+
+  .mission-badge {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-bold;
+  }
+
+  .mission-safe {
+    @apply mission-badge bg-lime text-asphalt;
+  }
+
+  .mission-medium {
+    @apply mission-badge bg-electric-blue text-asphalt;
+  }
+
+  .mission-high {
+    @apply mission-badge bg-gold text-asphalt;
+  }
+
+  .mission-nightmare {
+    @apply mission-badge bg-danger text-white neon-glow;
+  }
+}
+
+/* Map container */
+.map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Custom map controls */
+.map-overlay {
+  position: absolute;
+  z-index: 10;
+}
+
+/* QR Code styles */
+.qr-container {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Prevent zoom on double-tap */
+button, a {
+  touch-action: manipulation;
+}
+
+/* Loading animations */
+@keyframes spray-fade {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.loading-spray {
+  animation: spray-fade 1.5s ease-in-out infinite;
+}
+
+/* Fullscreen game view */
+.game-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
