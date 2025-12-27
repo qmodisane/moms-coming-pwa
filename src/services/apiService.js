@@ -24,12 +24,11 @@ class ApiService {
   }
 
   // Game endpoints
-  async createGame(hostPlayerId, hostPlayerName, settings = {}) {
+  async createGame(playerName, settings = {}) {
     return this.request('/game/create', {
       method: 'POST',
       body: JSON.stringify({
-        hostPlayerId,
-        hostPlayerName,
+        playerName,
         gameMode: 'standard',
         settings
       })
