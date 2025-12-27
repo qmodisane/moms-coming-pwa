@@ -24,29 +24,30 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
   }, []);
 
   const handleCreateGame = async () => {
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
+  if (!name.trim()) {
+    setError('Please enter your name');
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    try {
-      setPlayerName(name);
-      const result = await apiService.createGame(playerId, name);
-      
-      onGameCreated({
-        sessionId: result.session.id,
-        sessionCode: result.session.code,
-        isHost: true
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to create game');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setPlayerName(name);
+    const result = await apiService.createGame(name);
+    
+    onGameCreated({
+      sessionId: result.session.id,
+      sessionCode: result.session.code,
+      isHost: true,
+      playerId: result.player.id
+    });
+  } catch (err) {
+    setError(err.message || 'Failed to create game');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleJoinGame = async () => {
     if (!name.trim()) {
