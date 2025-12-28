@@ -3,7 +3,6 @@ import { useGameStore } from '../store/gameStore';
 import apiService from '../services/apiService';
 import qrCodeService from '../services/qrCodeService';
 import QRScanner from '../components/QRScanner';
-import InstallPrompt from '../components/InstallPrompt';
 
 export default function HomeScreen({ onGameCreated, onGameJoined }) {
   const { playerId, playerName, setPlayerName, toggleQRScanner, showQRScanner } = useGameStore();
@@ -25,30 +24,30 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
   }, []);
 
   const handleCreateGame = async () => {
-  if (!name.trim()) {
-    setError('Please enter your name');
-    return;
-  }
+    if (!name.trim()) {
+      setError('Please enter your name');
+      return;
+    }
 
-  setLoading(true);
-  setError(null);
+    setLoading(true);
+    setError(null);
 
-  try {
-    setPlayerName(name);
-    const result = await apiService.createGame(name);
-    
-    onGameCreated({
-      sessionId: result.session.id,
-      sessionCode: result.session.code,
-      isHost: true,
-      playerId: result.player.id
-    });
-  } catch (err) {
-    setError(err.message || 'Failed to create game');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setPlayerName(name);
+      const result = await apiService.createGame(name);
+      
+      onGameCreated({
+        sessionId: result.session.id,
+        sessionCode: result.session.code,
+        isHost: true,
+        playerId: result.player.id
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to create game');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleJoinGame = async () => {
     if (!name.trim()) {
@@ -87,6 +86,74 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
     setTimeout(() => {
       document.getElementById('join-button')?.scrollIntoView({ behavior: 'smooth' });
     }, 300);
+  };
+
+  // Smart Install Card Component - Hides when already installed
+  const InstallCard = () => {
+    const [show, setShow] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
+
+    useEffect(() => {
+      // Check if already installed as PWA
+      const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+      
+      // Check if iOS device
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      setIsIOS(iOS);
+
+      // Only show if NOT already installed
+      setShow(!isInstalled);
+    }, []);
+
+    // Don't render anything if already installed
+    if (!show) return null;
+
+    return (
+      <div className="game-card border-2 border-electric-blue">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-3xl">📱</span>
+          <h3 className="text-electric-blue font-graffiti text-xl">
+            Install as App
+          </h3>
+        </div>
+        
+        <div className="text-spray-white text-sm space-y-3">
+          <p className="font-bold text-lime">
+            ⚡ Better GPS performance & offline mode
+          </p>
+          
+          {isIOS ? (
+            // iOS Instructions
+            <div className="bg-asphalt p-3 rounded-lg border-l-4 border-hot-pink">
+              <p className="text-hot-pink font-bold mb-2 flex items-center gap-2">
+                <span>🍎</span> For iPhone/iPad:
+              </p>
+              <ol className="list-decimal list-inside text-xs space-y-1.5 ml-2">
+                <li>Tap the <strong>Share</strong> button <span className="inline-block text-lg">⎋</span></li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> to confirm</li>
+              </ol>
+            </div>
+          ) : (
+            // Android/Desktop Instructions
+            <div className="bg-asphalt p-3 rounded-lg border-l-4 border-lime">
+              <p className="text-lime font-bold mb-2 flex items-center gap-2">
+                <span>🤖</span> For Android/Desktop:
+              </p>
+              <ol className="list-decimal list-inside text-xs space-y-1.5 ml-2">
+                <li>Tap the browser <strong>menu</strong> (⋮ or ⋯)</li>
+                <li>Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+                <li>Tap <strong>"Install"</strong></li>
+              </ol>
+            </div>
+          )}
+
+          <p className="text-xs text-center opacity-75 pt-2">
+            💡 Once installed, launch from your home screen!
+          </p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -189,6 +256,9 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
           </div>
         </div>
 
+        {/* Smart Install Card - Auto-hides when installed */}
+        <InstallCard />
+
         {/* Info */}
         <div className="text-center text-spray-white text-xs opacity-50">
           <p>v1.0.0 • PWA Edition</p>
@@ -203,9 +273,6 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
           onClose={toggleQRScanner}
         />
       )}
-{/* PWA Install Prompt */}
-      <InstallPrompt />
- 
     </div>
   );
 }
