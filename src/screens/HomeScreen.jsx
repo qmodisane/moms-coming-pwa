@@ -88,67 +88,92 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
     }, 300);
   };
 
-  // Smart Install Card Component - Better detection + manual dismiss
+  // Smart Install Card Component - Brave-compatible with fallback
   const InstallCard = () => {
     const [show, setShow] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
-      // Check if user manually marked as installed
-      const wasInstalled = localStorage.getItem('pwa-was-installed');
-      
-      if (wasInstalled) {
-        setShow(false);
-        return;
+      try {
+        // Try to check localStorage (might fail in Brave with shields up)
+        const wasInstalled = localStorage.getItem('pwa-was-installed');
+        
+        if (wasInstalled === 'true') {
+          setShow(false);
+          return;
+        }
+
+        // Multiple detection methods for installed state
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        const isIOSStandalone = window.navigator?.standalone === true;
+        const isInstalledRef = document.referrer.includes('android-app://');
+        
+        // If detected as installed, try to save flag and hide
+        if (isStandalone || isIOSStandalone || isInstalledRef) {
+          try {
+            localStorage.setItem('pwa-was-installed', 'true');
+          } catch (e) {
+            console.warn('localStorage blocked:', e);
+          }
+          setShow(false);
+          return;
+        }
+
+        // Check if user dismissed (with fallback if localStorage blocked)
+        let dismissedRecently = false;
+        try {
+          const dismissed = localStorage.getItem('pwa-install-dismissed');
+          dismissedRecently = dismissed && (Date.now() - parseInt(dismissed) < 30 * 24 * 60 * 60 * 1000);
+        } catch (e) {
+          console.warn('localStorage blocked, showing card:', e);
+        }
+
+        if (dismissedRecently) {
+          setShow(false);
+          return;
+        }
+        
+        // Check if iOS device
+        const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        setIsIOS(iOS);
+
+        // Show the card
+        setShow(true);
+
+        // Debug info
+        console.log('PWA Install Card - Brave Compatible:', {
+          browser: navigator.userAgent.includes('Brave') ? 'Brave' : 'Other',
+          isStandalone,
+          isIOSStandalone,
+          willShow: true
+        });
+      } catch (error) {
+        // If anything fails, default to showing the card
+        console.error('Install card error, defaulting to show:', error);
+        setShow(true);
+        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent));
       }
-
-      // Multiple detection methods for installed state
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isIOSStandalone = window.navigator.standalone === true;
-      const isInstalledRef = document.referrer.includes('android-app://');
-      
-      // If detected as installed, save flag and hide
-      if (isStandalone || isIOSStandalone || isInstalledRef) {
-        localStorage.setItem('pwa-was-installed', 'true');
-        setShow(false);
-        return;
-      }
-
-      // Check if user dismissed (don't show for 30 days)
-      const dismissed = localStorage.getItem('pwa-install-dismissed');
-      const dismissedRecently = dismissed && (Date.now() - parseInt(dismissed) < 30 * 24 * 60 * 60 * 1000);
-
-      if (dismissedRecently) {
-        setShow(false);
-        return;
-      }
-      
-      // Check if iOS device
-      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      setIsIOS(iOS);
-
-      // Show the card
-      setShow(true);
-
-      // Debug info (remove in production)
-      console.log('PWA Install Check:', {
-        isStandalone,
-        isIOSStandalone,
-        isInstalledRef,
-        wasInstalled,
-        dismissedRecently,
-        willShow: true
-      });
     }, []);
 
     const handleDismiss = () => {
-      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
-      setShow(false);
+      try {
+        localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+        setShow(false);
+      } catch (e) {
+        // If localStorage blocked, just hide visually
+        console.warn('Cannot save dismiss state (Brave shields?), hiding anyway');
+        setShow(false);
+      }
     };
 
     const handleMarkInstalled = () => {
-      localStorage.setItem('pwa-was-installed', 'true');
-      setShow(false);
+      try {
+        localStorage.setItem('pwa-was-installed', 'true');
+        setShow(false);
+      } catch (e) {
+        console.warn('Cannot save installed state (Brave shields?), hiding anyway');
+        setShow(false);
+      }
     };
 
     // Don't render anything if hidden
@@ -331,9 +356,25 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
         <InstallCard />
 
         {/* Info */}
-        <div className="text-center text-spray-white text-xs opacity-50">
+        <div className="text-center text-spray-white text-xs opacity-50 space-y-2">
           <p>v1.0.0 • PWA Edition</p>
           <p className="mt-1">POLEAD</p>
+          
+          {/* Fallback install link for Brave/privacy browsers */}
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem('pwa-install-dismissed');
+                localStorage.removeItem('pwa-was-installed');
+              } catch (e) {
+                console.warn('localStorage blocked');
+              }
+              window.location.reload();
+            }}
+            className="text-electric-blue hover:text-hot-pink underline text-xs mt-2 block mx-auto"
+          >
+            📲 Install instructions
+          </button>
         </div>
       </div>
 
