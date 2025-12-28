@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import apiService from '../services/apiService';
 import qrCodeService from '../services/qrCodeService';
 import QRScanner from '../components/QRScanner';
+import InstallPrompt from '../components/InstallPrompt';
 
 export default function HomeScreen({ onGameCreated, onGameJoined }) {
   const { playerId, playerName, setPlayerName, toggleQRScanner, showQRScanner } = useGameStore();
@@ -191,7 +192,7 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
         {/* Info */}
         <div className="text-center text-spray-white text-xs opacity-50">
           <p>v1.0.0 • PWA Edition</p>
-          <p className="mt-1">Built with ❤️ in South Africa</p>
+          <p className="mt-1">Polead</p>
         </div>
       </div>
 
@@ -202,6 +203,9 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
           onClose={toggleQRScanner}
         />
       )}
+{/* PWA Install Prompt */}
+      <InstallPrompt />
+ 
     </div>
   );
 }

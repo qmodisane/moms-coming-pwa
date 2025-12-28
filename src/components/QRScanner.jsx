@@ -6,6 +6,52 @@ export default function QRScanner({ onScanSuccess, onClose }) {
   const scannerRef = useRef(null);
   const [error, setError] = useState(null);
 
+  // Add custom styles for scanner
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #qr-reader {
+        border: none !important;
+      }
+      #qr-reader__dashboard_section_csr {
+        color: #000000 !important;
+        font-weight: bold !important;
+      }
+      #qr-reader__dashboard_section_csr button {
+        background: #00d9ff !important;
+        color: #1a1a1a !important;
+        font-weight: bold !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+      }
+      #qr-reader__dashboard_section_csr select {
+        color: #000000 !important;
+        font-weight: bold !important;
+        border: 2px solid #00d9ff !important;
+        border-radius: 8px !important;
+        padding: 4px 8px !important;
+      }
+      #qr-reader__scan_region {
+        border: 2px solid #00d9ff !important;
+      }
+      #qr-reader__status_span {
+        color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+      }
+      #qr-reader__header_message {
+        color: #000000 !important;
+        font-weight: bold !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
       'qr-reader',
@@ -84,7 +130,7 @@ export default function QRScanner({ onScanSuccess, onClose }) {
           </div>
         )}
 
-        <p className="text-spray-white text-center text-sm">
+        <p className="text-black font-bold text-center text-sm bg-white py-2 px-4 rounded-lg">
           Point your camera at a Mom's Coming QR code
         </p>
       </div>
