@@ -3,6 +3,7 @@ import { useGameStore } from './store/gameStore';
 import socketService from './services/socketService';
 import HomeScreen from './screens/HomeScreen';
 import LobbyScreen from './screens/LobbyScreen';
+import SetupScreen from './screens/SetupScreen';
 import GameMapScreen from './screens/GameMapScreen';
 
 export default function App() {
@@ -43,8 +44,10 @@ export default function App() {
   };
 
   const handleStartSetup = () => {
-    // For now, skip setup and go straight to game
-    // TODO: Add boundary drawing screen
+    setGameStatus('setup');
+  };
+
+  const handleSetupComplete = () => {
     setGameStatus('active');
   };
 
@@ -59,6 +62,10 @@ export default function App() {
 
       {gameStatus === 'lobby' && (
         <LobbyScreen onStartSetup={handleStartSetup} />
+      )}
+
+      {gameStatus === 'setup' && (
+        <SetupScreen onSetupComplete={handleSetupComplete} />
       )}
 
       {gameStatus === 'active' && <GameMapScreen />}

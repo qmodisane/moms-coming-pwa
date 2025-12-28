@@ -29,7 +29,7 @@ class GeolocationService {
         navigator.geolocation.getCurrentPosition(
           () => resolve('granted'),
           () => reject('denied'),
-          { timeout: 5000 }
+          { timeout: 10000 }
         );
       });
     }
@@ -61,8 +61,8 @@ class GeolocationService {
         },
         {
           enableHighAccuracy: true,
-          maximumAge: 1000,
-          timeout: 10000
+          maximumAge: 5000,
+          timeout: 15000  // ← CHANGED from 10000
         }
       );
     });
@@ -107,8 +107,8 @@ class GeolocationService {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 5000
+        maximumAge: 5000,   // ← CHANGED from 1000
+        timeout: 15000      // ← CHANGED from 5000
       }
     );
 
