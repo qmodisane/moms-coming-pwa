@@ -88,28 +88,83 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
     }, 300);
   };
 
-  // Smart Install Card Component - Hides when already installed
+  // Smart Install Card Component - Better detection + manual dismiss
   const InstallCard = () => {
     const [show, setShow] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
-      // Check if already installed as PWA
-      const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+      // Check if user manually marked as installed
+      const wasInstalled = localStorage.getItem('pwa-was-installed');
+      
+      if (wasInstalled) {
+        setShow(false);
+        return;
+      }
+
+      // Multiple detection methods for installed state
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isIOSStandalone = window.navigator.standalone === true;
+      const isInstalledRef = document.referrer.includes('android-app://');
+      
+      // If detected as installed, save flag and hide
+      if (isStandalone || isIOSStandalone || isInstalledRef) {
+        localStorage.setItem('pwa-was-installed', 'true');
+        setShow(false);
+        return;
+      }
+
+      // Check if user dismissed (don't show for 30 days)
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      const dismissedRecently = dismissed && (Date.now() - parseInt(dismissed) < 30 * 24 * 60 * 60 * 1000);
+
+      if (dismissedRecently) {
+        setShow(false);
+        return;
+      }
       
       // Check if iOS device
       const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       setIsIOS(iOS);
 
-      // Only show if NOT already installed
-      setShow(!isInstalled);
+      // Show the card
+      setShow(true);
+
+      // Debug info (remove in production)
+      console.log('PWA Install Check:', {
+        isStandalone,
+        isIOSStandalone,
+        isInstalledRef,
+        wasInstalled,
+        dismissedRecently,
+        willShow: true
+      });
     }, []);
 
-    // Don't render anything if already installed
+    const handleDismiss = () => {
+      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+      setShow(false);
+    };
+
+    const handleMarkInstalled = () => {
+      localStorage.setItem('pwa-was-installed', 'true');
+      setShow(false);
+    };
+
+    // Don't render anything if hidden
     if (!show) return null;
 
     return (
-      <div className="game-card border-2 border-electric-blue">
+      <div className="game-card border-2 border-electric-blue relative">
+        {/* Dismiss button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-2 right-2 text-spray-white hover:text-hot-pink text-xl"
+          aria-label="Dismiss"
+        >
+          ✕
+        </button>
+
         <div className="flex items-center gap-2 mb-3">
           <span className="text-3xl">📱</span>
           <h3 className="text-electric-blue font-graffiti text-xl">
@@ -151,6 +206,22 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
           <p className="text-xs text-center opacity-75 pt-2">
             💡 Once installed, launch from your home screen!
           </p>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleMarkInstalled}
+              className="flex-1 text-xs bg-electric-blue text-asphalt py-2 px-3 rounded-lg font-bold hover:bg-lime transition-colors"
+            >
+              ✓ Already Installed
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="flex-1 text-xs text-spray-white opacity-50 hover:opacity-100"
+            >
+              Maybe Later
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -262,7 +333,7 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
         {/* Info */}
         <div className="text-center text-spray-white text-xs opacity-50">
           <p>v1.0.0 • PWA Edition</p>
-          <p className="mt-1">Polead</p>
+          <p className="mt-1">POLEAD</p>
         </div>
       </div>
 
