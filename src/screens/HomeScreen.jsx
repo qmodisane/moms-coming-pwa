@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import apiService from '../services/apiService';
 import qrCodeService from '../services/qrCodeService';
 import QRScanner from '../components/QRScanner';
+import Rulebook from '../components/Rulebook';
 
 export default function HomeScreen({ onGameCreated, onGameJoined }) {
   const { playerId, playerName, setPlayerName, toggleQRScanner, showQRScanner } = useGameStore();
@@ -10,6 +11,7 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showRulebook, setShowRulebook] = useState(false);
 
   useEffect(() => {
     // Check if there's a join code in URL (from QR scan)
@@ -254,6 +256,14 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
 
   return (
     <div className="min-h-screen bg-asphalt flex items-center justify-center p-4">
+{/* Rulebook Icon - Top Left */}
+    <button
+      onClick={() => setShowRulebook(true)}
+      className="fixed top-4 left-4 z-40 bg-electric-blue text-asphalt p-3 rounded-full shadow-lg hover:bg-hot-pink hover:scale-110 transition-all"
+      aria-label="Game Rules"
+    >
+      <span className="text-2xl">📖</span>
+    </button>
       <div className="max-w-md w-full space-y-6">
         {/* Logo/Title */}
         <div className="text-center mb-8">
@@ -385,6 +395,12 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
           onClose={toggleQRScanner}
         />
       )}
+
+{/* Rulebook Modal */}
+      <Rulebook 
+        isOpen={showRulebook} 
+        onClose={() => setShowRulebook(false)} 
+      />
     </div>
   );
 }
