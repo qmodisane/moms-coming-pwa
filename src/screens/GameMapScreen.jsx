@@ -28,11 +28,11 @@ export default function GameMapScreen({ onGameEnd }) {
   const [viewState, setViewState] = useState({
     longitude: 28.0473,
     latitude: -26.2041,
-    zoom: 18
+    zoom: 17
   });
   
   const [locationError, setLocationError] = useState(null);
-  const [showBoundary, setShowBoundary] = useState(false);
+  const [showBoundary, setShowBoundary] = useState(true); // ✅ SHOW BY DEFAULT
   const [missions, setMissions] = useState([]);
   const [showMissions, setShowMissions] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
@@ -40,11 +40,12 @@ export default function GameMapScreen({ onGameEnd }) {
   const [messages, setMessages] = useState([]);
   const [followMode, setFollowMode] = useState(true);
   const [gameTime, setGameTime] = useState(0);
-  const [messagesRemaining, setMessagesRemaining] = useState(999); // Unlimited
+  const [messagesRemaining, setMessagesRemaining] = useState(999);
   const [shrinkCountdown, setShrinkCountdown] = useState(600);
   const [isCaught, setIsCaught] = useState(false);
-  const [proximityAlert, setProximityAlert] = useState(null); // null, 'far', 'near', 'danger'
+  const [proximityAlert, setProximityAlert] = useState(null);
   const [showViolationAlert, setShowViolationAlert] = useState(false);
+  const [boundaryFlash, setBoundaryFlash] = useState(false); // ✅ For shrink animation
 
   useEffect(() => {
     startLocationTracking();
@@ -67,6 +68,7 @@ export default function GameMapScreen({ onGameEnd }) {
 
     // Socket listeners
     socketService.onGameState((gameState) => {
+      console.log('📊 Game state update:', gameState);
       updatePlayers(gameState.players || []);
       if (gameState.boundary) {
         updateBoundary(gameState.boundary);
@@ -74,29 +76,40 @@ export default function GameMapScreen({ onGameEnd }) {
     });
 
     socketService.onBoundaryShrinking((data) => {
+      console.log('⚠️ Boundary shrinking!');
       showNotification('⚠️ BOUNDARY SHRINKING IN 30 SECONDS!', 'danger', 5000);
       setShrinkCountdown(30);
+      setBoundaryFlash(true);
     });
 
     socketService.onBoundaryShrunk((data) => {
+      console.log('📍 Boundary shrunk:', data.newBoundary);
       updateBoundary(data.newBoundary);
-      showNotification('🎯 BOUNDARY HAS SHRUNK!', 'warning', 3000);
+      showNotification('🎯 BOUNDARY HAS SHRUNK!', 'warning', 5000);
       setShrinkCountdown(600);
-      flashBoundary();
+      setBoundaryFlash(false);
+      // Show boundary for 5 seconds after shrink
+      setShowBoundary(true);
+      setTimeout(() => {
+        // Don't auto-hide, let user control
+      }, 5000);
     });
 
     socketService.onViolation((data) => {
+      console.log('🚨 Violation:', data);
       if (data.playerId === playerId) {
         triggerViolationAlert();
       }
     });
 
     socketService.onMessageReceived((data) => {
+      console.log('💬 Message received:', data);
       setMessages(prev => [...prev, data]);
       showNotification(`💬 ${data.fromPlayerName}: ${data.message}`, 'info', 3000);
     });
 
     socketService.onPlayerTagged((data) => {
+      console.log('🎯 Player tagged:', data);
       if (data.targetId === playerId) {
         setIsCaught(true);
         showNotification('😱 YOU WERE CAUGHT!', 'danger', 5000);
@@ -105,20 +118,28 @@ export default function GameMapScreen({ onGameEnd }) {
     });
 
     socketService.onGameEnded((data) => {
+      console.log('🏁 Game ended:', data);
       setGameStatus('ended');
       if (onGameEnd) onGameEnd(data);
     });
 
     socketService.onImmunityClaimed((data) => {
+      console.log('🛡️ Immunity claimed:', data);
       if (data.playerId === playerId) {
-        showNotification('🛡️ IMMUNITY CLAIMED! SAFE FROM TAGGING!', 'info', 3000);
+        showNotification('🛡️ IMMUNITY CLAIMED!', 'info', 3000);
       }
     });
 
-    // Refresh missions every 30 seconds
+    socketService.onMissionCompleted((data) => {
+      console.log('✅ Mission completed:', data);
+      loadMissions();
+      loadPlayerRole();
+    });
+
+    // Refresh missions every 10 seconds
     const missionInterval = setInterval(() => {
       loadMissions();
-    }, 30000);
+    }, 10000);
 
     return () => {
       geolocationService.stopTracking();
@@ -132,8 +153,10 @@ export default function GameMapScreen({ onGameEnd }) {
     try {
       const apiService = (await import('../services/apiService')).default;
       const gameState = await apiService.getGameState(sessionId);
+      console.log('🎮 Game state:', gameState);
       const me = gameState.players.find(p => p.player_id === playerId);
       if (me) {
+        console.log('👤 My data:', me);
         setPlayerRole(me.role);
         updatePlayerPoints(me.points || 0);
         setIsCaught(me.status === 'caught');
@@ -149,6 +172,7 @@ export default function GameMapScreen({ onGameEnd }) {
     try {
       const apiService = (await import('../services/apiService')).default;
       const result = await apiService.getPlayerMissions(sessionId, playerId);
+      console.log('📋 Missions loaded:', result.missions);
       setMissions(result.missions || []);
     } catch (error) {
       console.error('Failed to load missions:', error);
@@ -174,7 +198,6 @@ export default function GameMapScreen({ onGameEnd }) {
     
     const distance = geolocationService.calculateDistance(playerLocation, seeker.last_location);
     
-    // Update proximity state
     if (distance <= 30) {
       setProximityAlert('danger');
       if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
@@ -201,6 +224,7 @@ export default function GameMapScreen({ onGameEnd }) {
   const startLocationTracking = () => {
     geolocationService.startTracking(
       (location) => {
+        console.log('📍 Location update:', location);
         updatePlayerLocation(location);
         
         if (followMode) {
@@ -218,6 +242,7 @@ export default function GameMapScreen({ onGameEnd }) {
         }
       },
       (error) => {
+        console.error('Location error:', error);
         setLocationError(error);
         showNotification(error, 'danger', 3000);
       }
@@ -239,11 +264,6 @@ export default function GameMapScreen({ onGameEnd }) {
     }, duration);
   };
 
-  const flashBoundary = () => {
-    setShowBoundary(true);
-    setTimeout(() => setShowBoundary(false), 3000);
-  };
-
   const handleTagPlayer = async (targetPlayerId) => {
     if (playerRole !== 'seeker') return;
     
@@ -251,6 +271,8 @@ export default function GameMapScreen({ onGameEnd }) {
     if (!target?.last_location || !playerLocation) return;
     
     const distance = geolocationService.calculateDistance(playerLocation, target.last_location);
+    
+    console.log(`🎯 Attempting to tag ${target.player_name}, distance: ${distance}m`);
     
     if (distance > 30) {
       showNotification(`TOO FAR! ${Math.round(distance)}m (need <30m)`, 'warning', 3000);
@@ -285,6 +307,17 @@ export default function GameMapScreen({ onGameEnd }) {
     }
   } : null;
 
+  // ✅ DEBUG: Log what we're rendering
+  console.log('🎨 Rendering map:', {
+    playerLocation,
+    playerId,
+    playerRole,
+    playersCount: players.length,
+    myPlayer: players.find(p => p.player_id === playerId),
+    showBoundary,
+    boundaryExists: !!boundary
+  });
+
   return (
     <div className="fixed inset-0 bg-asphalt">
       {/* VIOLATION ALERT OVERLAY */}
@@ -298,7 +331,7 @@ export default function GameMapScreen({ onGameEnd }) {
         </div>
       )}
 
-      {/* Map */}
+      {/* Map - SATELLITE STYLE FOR BETTER VISIBILITY */}
       <Map
         ref={mapRef}
         {...viewState}
@@ -306,44 +339,80 @@ export default function GameMapScreen({ onGameEnd }) {
           setViewState(evt.viewState);
           setFollowMode(false);
         }}
-        mapStyle="mapbox://styles/mapbox/dark-v11"
+        mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Boundary */}
+        {/* Boundary - ALWAYS VISIBLE WHEN ENABLED */}
         {boundaryGeoJSON && showBoundary && (
           <Source id="boundary-source" type="geojson" data={boundaryGeoJSON}>
             <Layer
               id="boundary-fill"
               type="fill"
-              paint={{ 'fill-color': shrinkCountdown <= 30 ? '#FF0000' : '#00F5FF', 'fill-opacity': 0.15 }}
+              paint={{ 
+                'fill-color': boundaryFlash ? '#FF0000' : '#00F5FF', 
+                'fill-opacity': boundaryFlash ? 0.3 : 0.15 
+              }}
             />
             <Layer
               id="boundary-line"
               type="line"
               paint={{ 
-                'line-color': shrinkCountdown <= 30 ? '#FF0000' : '#00F5FF', 
-                'line-width': 3,
-                'line-opacity': 0.8
+                'line-color': boundaryFlash ? '#FF0000' : '#00F5FF', 
+                'line-width': boundaryFlash ? 5 : 3,
+                'line-opacity': 1
               }}
             />
           </Source>
         )}
 
-        {/* Players */}
+        {/* MY LOCATION - ALWAYS SHOW! */}
+        {playerLocation && (
+          <Marker
+            longitude={playerLocation.lng}
+            latitude={playerLocation.lat}
+            anchor="center"
+          >
+            <div className="relative">
+              {/* Large pulsing circle for MY location */}
+              <div
+                className="animate-pulse"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: playerRole === 'seeker' ? '#FF3838' : '#00F5FF',
+                  borderRadius: '50%',
+                  border: '4px solid white',
+                  boxShadow: '0 0 20px rgba(0,245,255,0.8)'
+                }}
+              />
+              {/* Icon above */}
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-4xl">
+                {isCaught ? '😵' : (playerRole === 'seeker' ? '👁️' : '🏃')}
+              </div>
+              {/* Label below */}
+              <div className="absolute top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                <span className="text-sm bg-electric-blue text-asphalt px-2 py-1 rounded font-bold">
+                  YOU
+                </span>
+              </div>
+            </div>
+          </Marker>
+        )}
+
+        {/* OTHER PLAYERS - ONLY VIOLATORS OR SEEKER SEES EVERYONE */}
         {players.map((player) => {
           if (!player.last_location) return null;
+          if (player.player_id === playerId) return null; // Skip myself, shown above
           
-          const isMe = player.player_id === playerId;
           const isSeeker = player.role === 'seeker';
           const isCaughtPlayer = player.status === 'caught';
+          const hasViolations = (player.violations || 0) > 0;
           
-          // 🚨 CRITICAL VISIBILITY RULES 🚨
+          // Visibility rules
           const shouldShow = 
-            isMe ||                              // Always show myself
-            (player.violations || 0) > 0;        // Show violators to everyone
-            // NOTE: Seeker is NOT shown to hiders (stealth mode)
-            // Seeker can ONLY see violators, not all hiders
+            (playerRole === 'seeker') ||  // Seeker sees everyone
+            hasViolations;                 // Everyone sees violators
 
           if (!shouldShow) return null;
 
@@ -353,33 +422,33 @@ export default function GameMapScreen({ onGameEnd }) {
               longitude={player.last_location.lng}
               latitude={player.last_location.lat}
               anchor="center"
-              onClick={() => playerRole === 'seeker' && !isMe && !isCaughtPlayer && handleTagPlayer(player.player_id)}
+              onClick={() => playerRole === 'seeker' && !isCaughtPlayer && handleTagPlayer(player.player_id)}
             >
               <div className="relative">
                 <div
                   style={{
-                    width: isMe ? '24px' : '18px',
-                    height: isMe ? '24px' : '18px',
-                    backgroundColor: isCaughtPlayer ? '#888' : (isSeeker ? '#FF3838' : isMe ? '#00F5FF' : '#CCFF00'),
+                    width: '24px',
+                    height: '24px',
+                    backgroundColor: isCaughtPlayer ? '#888' : (hasViolations ? '#FFFF00' : '#CCFF00'),
                     borderRadius: '50%',
                     border: '3px solid white',
                     boxShadow: '0 0 15px rgba(0,0,0,0.8)',
-                    cursor: playerRole === 'seeker' && !isMe && !isCaughtPlayer ? 'pointer' : 'default',
+                    cursor: playerRole === 'seeker' && !isCaughtPlayer ? 'pointer' : 'default',
                     opacity: isCaughtPlayer ? 0.5 : 1
                   }}
                 />
-                {isMe && (
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-3xl">
-                    {isCaught ? '😵' : (playerRole === 'seeker' ? '👁️' : '🏃')}
+                {/* Tag prompt for seeker */}
+                {playerRole === 'seeker' && !isCaughtPlayer && (
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-sm bg-danger text-white px-2 py-1 rounded whitespace-nowrap">
+                    TAP TO TAG
                   </div>
                 )}
-                {!isMe && playerRole === 'seeker' && (
-                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                    <span className="text-xs bg-black bg-opacity-75 text-white px-1 rounded">
-                      {player.player_name} {isCaughtPlayer && '💀'}
-                    </span>
-                  </div>
-                )}
+                {/* Name */}
+                <div className="absolute top-7 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  <span className="text-xs bg-black bg-opacity-75 text-white px-1 rounded">
+                    {player.player_name} {isCaughtPlayer && '💀'}
+                  </span>
+                </div>
               </div>
             </Marker>
           );
@@ -392,7 +461,7 @@ export default function GameMapScreen({ onGameEnd }) {
             latitude={immunitySpot.location.lat}
             anchor="center"
           >
-            <div className="text-4xl animate-pulse" style={{ filter: 'drop-shadow(0 0 15px gold)' }}>
+            <div className="text-5xl animate-pulse" style={{ filter: 'drop-shadow(0 0 20px gold)' }}>
               🛡️
             </div>
           </Marker>
@@ -412,7 +481,7 @@ export default function GameMapScreen({ onGameEnd }) {
         </div>
       )}
 
-      {/* Top HUD - REDESIGNED */}
+      {/* Top HUD */}
       <div className="absolute top-2 left-2 right-2 z-10">
         <div className="bg-concrete bg-opacity-95 rounded-lg p-2 shadow-lg">
           <div className="flex justify-between items-center text-xs">
@@ -460,7 +529,7 @@ export default function GameMapScreen({ onGameEnd }) {
           
           {/* Shrink Warning */}
           {shrinkCountdown <= 60 && (
-            <div className="mt-1 bg-gold text-asphalt px-2 py-1 rounded text-xs font-bold text-center">
+            <div className="mt-1 bg-gold text-asphalt px-2 py-1 rounded text-xs font-bold text-center animate-pulse">
               ⚠️ Shrinking in {formatTime(shrinkCountdown)}
             </div>
           )}
@@ -476,7 +545,9 @@ export default function GameMapScreen({ onGameEnd }) {
           </div>
           {missions.length === 0 ? (
             <p className="text-spray-white text-xs opacity-75 text-center py-4">
-              No missions yet. Next spawn in {formatTime(300 - (gameTime % 300))}
+              Waiting for missions to spawn...
+              <br />
+              <span className="text-electric-blue">Check console for debug info</span>
             </p>
           ) : (
             missions.map(mission => (
@@ -546,7 +617,7 @@ export default function GameMapScreen({ onGameEnd }) {
           <button
             onClick={() => {
               if (playerLocation) {
-                setViewState(prev => ({ ...prev, longitude: playerLocation.lng, latitude: playerLocation.lat, zoom: 18 }));
+                setViewState(prev => ({ ...prev, longitude: playerLocation.lng, latitude: playerLocation.lat, zoom: 17 }));
                 setFollowMode(true);
               }
             }}
@@ -568,7 +639,9 @@ export default function GameMapScreen({ onGameEnd }) {
 
           <button
             onClick={() => setShowBoundary(!showBoundary)}
-            className="w-14 h-14 bg-electric-blue text-asphalt rounded-full shadow-lg flex items-center justify-center text-xl font-bold"
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl font-bold ${
+              showBoundary ? 'bg-electric-blue text-asphalt' : 'bg-concrete text-spray-white'
+            }`}
           >
             {showBoundary ? '👁️' : '🗺️'}
           </button>
@@ -583,6 +656,16 @@ export default function GameMapScreen({ onGameEnd }) {
             <h2 className="text-white font-graffiti text-4xl mb-2">CAUGHT!</h2>
             <p className="text-white text-base">You can still watch the game</p>
           </div>
+        </div>
+      )}
+
+      {/* Debug Info (Remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute bottom-20 left-2 bg-black bg-opacity-75 text-white text-xs p-2 rounded">
+          <div>My Location: {playerLocation ? `${playerLocation.lat.toFixed(4)}, ${playerLocation.lng.toFixed(4)}` : 'None'}</div>
+          <div>Players: {players.length}</div>
+          <div>Missions: {missions.length}</div>
+          <div>Boundary: {boundary ? 'Yes' : 'No'}</div>
         </div>
       )}
     </div>
