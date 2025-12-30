@@ -25,61 +25,72 @@ export default function HomeScreen({ onGameCreated, onGameJoined }) {
     }
   }, []);
 
-  const handleCreateGame = async () => {
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
+const handleCreateGame = async () => {
+  if (!name.trim()) {
+    setError('Please enter your name');
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    try {
-      setPlayerName(name);
-      const result = await apiService.createGame(name);
-      
-      onGameCreated({
-        sessionId: result.session.id,
-        sessionCode: result.session.code,
-        isHost: true,
-        playerId: result.player.id
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to create game');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setPlayerName(name);
+    const result = await apiService.createGame(name);
+    
+    // ✅ SAVE THE BACKEND-GENERATED PLAYER ID
+    const { setPlayerId } = useGameStore.getState();
+    setPlayerId(result.player.id);
+    
+    onGameCreated({
+      sessionId: result.session.id,
+      sessionCode: result.session.code,
+      isHost: true,
+      playerId: result.player.id  // ✅ Pass it along
+    });
+  } catch (err) {
+    setError(err.message || 'Failed to create game');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleJoinGame = async () => {
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
+const handleJoinGame = async () => {
+  if (!name.trim()) {
+    setError('Please enter your name');
+    return;
+  }
 
-    if (!joinCode.trim() || joinCode.length !== 6) {
-      setError('Please enter a valid 6-digit game code');
-      return;
-    }
+  if (!joinCode.trim() || joinCode.length !== 6) {
+    setError('Please enter a valid 6-digit game code');
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    try {
-      setPlayerName(name);
-      const result = await apiService.joinGame(joinCode, playerId, name);
-      
-      onGameJoined({
-        sessionId: result.sessionId,
-        sessionCode: joinCode,
-        isHost: false
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to join game');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setPlayerName(name);
+    
+    // ✅ Generate temporary ID for join request
+    const tempPlayerId = `player_${Date.now()}`;
+    const result = await apiService.joinGame(joinCode, tempPlayerId, name);
+    
+    // ✅ SAVE THE BACKEND-GENERATED PLAYER ID
+    const { setPlayerId } = useGameStore.getState();
+    setPlayerId(result.player.player_id);
+    
+    onGameJoined({
+      sessionId: result.sessionId,
+      sessionCode: joinCode,
+      isHost: false
+    });
+  } catch (err) {
+    setError(err.message || 'Failed to join game');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleQRScan = (scannedCode) => {
     setJoinCode(scannedCode);

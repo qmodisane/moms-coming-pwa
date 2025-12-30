@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 
 export const useGameStore = create((set, get) => ({
-  // Player info
-  playerId: localStorage.getItem('playerId') || `player_${Date.now()}`,
+  // Player info - DON'T generate ID, let backend create it
+  playerId: null,  // ✅ Changed from generated ID
   playerName: localStorage.getItem('playerName') || '',
   
   // Game session
   sessionId: null,
   sessionCode: null,
-  gameStatus: 'idle', // idle, lobby, active, ended
+  gameStatus: 'idle', // idle, lobby, setup, active, ended
   
   // Player state
   playerRole: 'hider', // hider or seeker
@@ -35,7 +35,6 @@ export const useGameStore = create((set, get) => ({
   
   // Actions
   setPlayerId: (id) => {
-    localStorage.setItem('playerId', id);
     set({ playerId: id });
   },
   
@@ -82,6 +81,7 @@ export const useGameStore = create((set, get) => ({
   toggleQRCode: () => set({ showQRCode: !get().showQRCode }),
   
   resetGame: () => set({
+    playerId: null,  // ✅ Reset to null
     sessionId: null,
     sessionCode: null,
     gameStatus: 'idle',
