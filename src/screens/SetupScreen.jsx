@@ -122,13 +122,16 @@ export default function SetupScreen({ onSetupComplete }) {
   };
 
   // Create GeoJSON for boundary polygon
-  const boundaryGeoJSON = boundaryPoints.length >= 3 ? {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[...boundaryPoints.map(p => [p.lng, p.lat]), [boundaryPoints[0].lng, boundaryPoints[0].lat]]]
-    }
-  } : null;
+const boundaryGeoJSON = boundaryPoints.length >= 3 ? {
+  type: 'Feature',
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[
+      ...boundaryPoints.map(p => [p.lng, p.lat]),
+      [boundaryPoints[0].lng, boundaryPoints[0].lat]  // ✅ This closes the polygon
+    ]]
+  }
+} : null;
 
   const boundaryFillStyle = {
     id: 'boundary-fill',
