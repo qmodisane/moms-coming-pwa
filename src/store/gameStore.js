@@ -8,10 +8,10 @@ export const useGameStore = create((set, get) => ({
   // Game session
   sessionId: null,
   sessionCode: null,
-  gameStatus: 'idle',
+  gameStatus: 'idle', // idle, lobby, setup, active, ended
   
   // Player state
-  playerRole: 'hider',
+  playerRole: 'hider', // hider or seeker
   playerPoints: 0,
   playerViolations: 0,
   playerLocation: null,
@@ -23,7 +23,7 @@ export const useGameStore = create((set, get) => ({
   activeMission: null,
   gameSettings: null,
   
-  // Communication
+  // Communication (end game)
   messagesRemaining: 3,
   communicationEnabled: false,
   messages: [],
@@ -34,7 +34,9 @@ export const useGameStore = create((set, get) => ({
   isHost: false,
   
   // Actions
-  setPlayerId: (id) => set({ playerId: id }),
+  setPlayerId: (id) => {
+    set({ playerId: id });
+  },
   
   setPlayerName: (name) => {
     localStorage.setItem('playerName', name);
@@ -52,6 +54,8 @@ export const useGameStore = create((set, get) => ({
   
   updatePlayerPoints: (points) => set({ playerPoints: points }),
   
+  updatePlayerViolations: (violations) => set({ playerViolations: violations }),
+  
   updatePlayers: (players) => set({ players }),
   
   updateBoundary: (boundary) => set({ boundary }),
@@ -59,6 +63,8 @@ export const useGameStore = create((set, get) => ({
   updateImmunitySpot: (spot) => set({ immunitySpot: spot }),
   
   setActiveMission: (mission) => set({ activeMission: mission }),
+  
+  setGameSettings: (settings) => set({ gameSettings: settings }),
   
   enableCommunication: () => set({ communicationEnabled: true }),
   
@@ -72,6 +78,10 @@ export const useGameStore = create((set, get) => ({
       return true;
     }
     return false;
+  },
+  
+  addMessage: (message) => {
+    set({ messages: [...get().messages, message] });
   },
   
   toggleQRScanner: () => set({ showQRScanner: !get().showQRScanner }),
@@ -91,9 +101,12 @@ export const useGameStore = create((set, get) => ({
     boundary: null,
     immunitySpot: null,
     activeMission: null,
+    gameSettings: null,
     messagesRemaining: 3,
     communicationEnabled: false,
     messages: [],
-    isHost: false
+    isHost: false,
+    showQRScanner: false,
+    showQRCode: false
   })
 }));
