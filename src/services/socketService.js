@@ -39,51 +39,36 @@ class SocketService {
     }
   }
 
-  // Join game session
+  // Emit events
   joinGame(sessionId, playerId, playerName) {
-    this.socket?.emit('game:join', {
-      sessionId,
-      playerId,
-      playerName
-    });
+    this.socket?.emit('game:join', { sessionId, playerId, playerName });
   }
 
-  // Update location
   updateLocation(sessionId, playerId, location) {
-    this.socket?.emit('location:update', {
-      sessionId,
-      playerId,
-      location
-    });
+    this.socket?.emit('location:update', { sessionId, playerId, location });
   }
 
-  // Claim immunity
   claimImmunity(sessionId, playerId) {
-    this.socket?.emit('immunity:claim', {
-      sessionId,
-      playerId
-    });
+    this.socket?.emit('immunity:claim', { sessionId, playerId });
   }
 
-  // Send message
   sendMessage(sessionId, toPlayerId, message, isBroadcast = false) {
-    this.socket?.emit('message:send', {
-      sessionId,
-      toPlayerId,
-      message,
-      isBroadcast
-    });
+    this.socket?.emit('message:send', { sessionId, toPlayerId, message, isBroadcast });
   }
 
-  // Tag player
   tagPlayer(sessionId, targetId) {
-    this.socket?.emit('player:tag', {
-      sessionId,
-      targetId
-    });
+    this.socket?.emit('player:tag', { sessionId, targetId });
   }
 
-  // Event listeners
+  completeMission(missionId, verificationData) {
+    this.socket?.emit('mission:complete', { missionId, verificationData });
+  }
+
+  transferPoints(sessionId, toPlayerId, amount) {
+    this.socket?.emit('points:transfer', { sessionId, toPlayerId, amount });
+  }
+
+  // Listen to events
   onGameJoined(callback) {
     this.socket?.on('game:joined', callback);
   }
@@ -142,6 +127,10 @@ class SocketService {
 
   onPointsTransferred(callback) {
     this.socket?.on('points:transferred', callback);
+  }
+
+  onMissionCompleted(callback) {
+    this.socket?.on('mission:completed', callback);
   }
 
   onGameEnded(callback) {

@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 
 export const useGameStore = create((set, get) => ({
-  // Player info - DON'T generate ID, let backend create it
-  playerId: null,  // ✅ Changed from generated ID
+  // Player info
+  playerId: null,
   playerName: localStorage.getItem('playerName') || '',
   
   // Game session
   sessionId: null,
   sessionCode: null,
-  gameStatus: 'idle', // idle, lobby, setup, active, ended
+  gameStatus: 'idle',
   
   // Player state
-  playerRole: 'hider', // hider or seeker
+  playerRole: 'hider',
   playerPoints: 0,
   playerViolations: 0,
   playerLocation: null,
@@ -23,7 +23,7 @@ export const useGameStore = create((set, get) => ({
   activeMission: null,
   gameSettings: null,
   
-  // Communication (end game)
+  // Communication
   messagesRemaining: 3,
   communicationEnabled: false,
   messages: [],
@@ -34,9 +34,7 @@ export const useGameStore = create((set, get) => ({
   isHost: false,
   
   // Actions
-  setPlayerId: (id) => {
-    set({ playerId: id });
-  },
+  setPlayerId: (id) => set({ playerId: id }),
   
   setPlayerName: (name) => {
     localStorage.setItem('playerName', name);
@@ -81,13 +79,14 @@ export const useGameStore = create((set, get) => ({
   toggleQRCode: () => set({ showQRCode: !get().showQRCode }),
   
   resetGame: () => set({
-    playerId: null,  // ✅ Reset to null
+    playerId: null,
     sessionId: null,
     sessionCode: null,
     gameStatus: 'idle',
     playerRole: 'hider',
     playerPoints: 0,
     playerViolations: 0,
+    playerLocation: null,
     players: [],
     boundary: null,
     immunitySpot: null,
