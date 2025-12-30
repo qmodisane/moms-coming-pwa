@@ -6,33 +6,29 @@ class SocketService {
     this.connected = false;
   }
 
-  connect(serverUrl = 'http://localhost:3000') {
-    if (this.socket?.connected) {
-      return this.socket;
-    }
+  connect(url) {
+    if (this.socket) return;
 
-    this.socket = io(serverUrl, {
+    this.socket = io(url, {
       transports: ['websocket', 'polling'],
-      reconnectionDelay: 1000,
       reconnection: true,
-      reconnectionAttempts: 10
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
 
     this.socket.on('connect', () => {
-      console.log('✓ Connected to game server');
+      console.log('🔌 Connected to server');
       this.connected = true;
     });
 
     this.socket.on('disconnect', () => {
-      console.log('✗ Disconnected from server');
+      console.log('🔌 Disconnected from server');
       this.connected = false;
     });
 
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
     });
-
-    return this.socket;
   }
 
   disconnect() {
@@ -43,38 +39,48 @@ class SocketService {
     }
   }
 
-  // Game actions
+  // Join game session
   joinGame(sessionId, playerId, playerName) {
-    this.socket?.emit('game:join', { sessionId, playerId, playerName });
-  }
-
-  updateLocation(sessionId, playerId, location) {
-    this.socket?.emit('location:update', { sessionId, playerId, location });
-  }
-
-  claimImmunity(sessionId, playerId) {
-    this.socket?.emit('immunity:claim', { sessionId, playerId });
-  }
-
-  completeMission(missionId, verificationData) {
-    this.socket?.emit('mission:complete', { missionId, verificationData });
-  }
-
-  tagPlayer(sessionId, targetId) {
-    this.socket?.emit('player:tag', { sessionId, targetId });
-  }
-
-  sendMessage(sessionId, message, toPlayerId = null, isBroadcast = true) {
-    this.socket?.emit('message:send', { 
-      sessionId, 
-      message, 
-      toPlayerId, 
-      isBroadcast 
+    this.socket?.emit('game:join', {
+      sessionId,
+      playerId,
+      playerName
     });
   }
 
-  transferPoints(sessionId, toPlayerId, amount) {
-    this.socket?.emit('points:transfer', { sessionId, toPlayerId, amount });
+  // Update location
+  updateLocation(sessionId, playerId, location) {
+    this.socket?.emit('location:update', {
+      sessionId,
+      playerId,
+      location
+    });
+  }
+
+  // Claim immunity
+  claimImmunity(sessionId, playerId) {
+    this.socket?.emit('immunity:claim', {
+      sessionId,
+      playerId
+    });
+  }
+
+  // Send message
+  sendMessage(sessionId, toPlayerId, message, isBroadcast = false) {
+    this.socket?.emit('message:send', {
+      sessionId,
+      toPlayerId,
+      message,
+      isBroadcast
+    });
+  }
+
+  // Tag player
+  tagPlayer(sessionId, targetId) {
+    this.socket?.emit('player:tag', {
+      sessionId,
+      targetId
+    });
   }
 
   // Event listeners
@@ -82,8 +88,20 @@ class SocketService {
     this.socket?.on('game:joined', callback);
   }
 
-  onGameState(callback) {
-    this.socket?.on('game:state', callback);
+  onGameStarted(callback) {
+    this.socket?.on('game:started', callback);
+  }
+
+  onSeekerAssigned(callback) {
+    this.socket?.on('seeker:assigned', callback);
+  }
+
+  onBoundarySet(callback) {
+    this.socket?.on('boundary:set', callback);
+  }
+
+  onImmunityPlaced(callback) {
+    this.socket?.on('immunity:placed', callback);
   }
 
   onPlayerJoined(callback) {
@@ -94,20 +112,12 @@ class SocketService {
     this.socket?.on('player:left', callback);
   }
 
-  onMissionAssigned(callback) {
-    this.socket?.on('missions:assigned', callback);
+  onPlayerTagged(callback) {
+    this.socket?.on('player:tagged', callback);
   }
 
-  onMissionCompleted(callback) {
-    this.socket?.on('mission:completed', callback);
-  }
-
-  onMissionFailed(callback) {
-    this.socket?.on('mission:failed', callback);
-  }
-
-  onViolation(callback) {
-    this.socket?.on('violation:out_of_bounds', callback);
+  onGameState(callback) {
+    this.socket?.on('game:state', callback);
   }
 
   onBoundaryShrinking(callback) {
@@ -118,36 +128,24 @@ class SocketService {
     this.socket?.on('boundary:shrunk', callback);
   }
 
-  onChaosMode(callback) {
-    this.socket?.on('chaos:mode_activated', callback);
-  }
-
-  onCommunicationEnabled(callback) {
-    this.socket?.on('communication:enabled', callback);
+  onViolation(callback) {
+    this.socket?.on('violation', callback);
   }
 
   onMessageReceived(callback) {
     this.socket?.on('message:received', callback);
   }
 
-  onPointsTransferred(callback) {
-    this.socket?.on('points:transferred', callback);
-  }
-
-  onPlayerTagged(callback) {
-    this.socket?.on('player:tagged', callback);
-  }
-
-  onGameEnded(callback) {
-    this.socket?.on('game:ended', callback);
-  }
-
   onImmunityClaimed(callback) {
     this.socket?.on('immunity:claimed', callback);
   }
 
-  onImmunityEjected(callback) {
-    this.socket?.on('immunity:ejected', callback);
+  onPointsTransferred(callback) {
+    this.socket?.on('points:transferred', callback);
+  }
+
+  onGameEnded(callback) {
+    this.socket?.on('game:ended', callback);
   }
 
   onError(callback) {

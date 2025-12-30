@@ -30,8 +30,24 @@ export default function LobbyScreen({ onStartSetup }) {
       fetchPlayers();
     });
 
+    // Listen for game starting
+    socketService.onGameStarted((data) => {
+      console.log('🚀 Game is starting!', data);
+      // App.jsx will handle the navigation
+    });
+
+    // Listen for seeker assignment
+    socketService.onSeekerAssigned((data) => {
+      console.log('👁️ Seeker assigned:', data);
+      fetchPlayers(); // Refresh player list to show new roles
+    });
+
     // Initial fetch
     fetchPlayers();
+
+    return () => {
+      // Cleanup listeners if needed
+    };
   }, [sessionId]);
 
   const fetchPlayers = async () => {
@@ -180,8 +196,11 @@ export default function LobbyScreen({ onStartSetup }) {
         {!isHost && (
           <div className="text-center py-8">
             <div className="loading-spray text-6xl mb-4">🎨</div>
-            <p className="text-spray-white text-lg">
+            <p className="text-spray-white text-lg mb-2">
               Waiting for host to start setup...
+            </p>
+            <p className="text-electric-blue text-sm">
+              You'll be notified when the game starts!
             </p>
           </div>
         )}

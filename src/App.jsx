@@ -14,23 +14,34 @@ export default function App() {
     // Connect to server on app load
     socketService.connect(serverUrl.replace('/api', ''));
 
-    // Listen for game started event
+    // Listen for game joined event
     socketService.onGameJoined((data) => {
       console.log('Game joined successfully');
+    });
+
+    // Listen for game started event
+    socketService.onGameStarted((data) => {
+      console.log('🚀 Game started!', data);
+      setGameStatus('active');
+    });
+
+    // Listen for seeker assigned
+    socketService.onSeekerAssigned((data) => {
+      console.log('👁️ Seeker assigned:', data);
     });
 
     // Cleanup on unmount
     return () => {
       socketService.disconnect();
     };
-  }, []);
+  }, [serverUrl, setGameStatus]);
 
-  const handleGameCreated = ({ sessionId, sessionCode, isHost }) => {
+  const handleGameCreated = ({ sessionId, sessionCode, isHost, playerId }) => {
     setSession(sessionId, sessionCode, isHost);
     setGameStatus('lobby');
 
     // Join socket room
-    const { playerId, playerName } = useGameStore.getState();
+    const { playerName } = useGameStore.getState();
     socketService.joinGame(sessionId, playerId, playerName);
   };
 
